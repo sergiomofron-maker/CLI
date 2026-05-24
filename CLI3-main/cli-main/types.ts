@@ -62,7 +62,7 @@ export const CRITICAL_DICTIONARY: Record<string, string[]> = {
   "Ensalada": ["Lechuga", "Tomate"],
   "Ensalada de garbanzos": ["Garbanzos", "Cebolla", "Pimiento", "Atún"],
   "Ensalada Sergio": ["Queso Cottage", "Sardinas", "Huevos cocidos", "Lechuga", "Tomate"],
-  "Ensalada de pasta": ["Macarrones", "jamón york", "Pepinillos", "Sardinas"],
+  "Ensalada de pasta": ["Macarrones", "jamón york", "Pepinillos", "Atún"],
   "Fajitas": ["Pan de fajita", "Carne picada", "Pimiento", "Cebolla"],
   "Tortilla de patata": ["Huevos", "Patatas", "Cebolla"],
   "Pizza casera": ["Masa de pizza", "Tomate frito", "Queso"],
