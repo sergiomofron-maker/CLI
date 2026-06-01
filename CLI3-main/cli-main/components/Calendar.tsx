@@ -50,15 +50,18 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
 
 
 
+  const viewStartDate = addDays(currentWeekStart, weekOffset * 7);
+  const viewWeekKey = format(viewStartDate, 'yyyy-MM-dd');
+  const days = Array.from({ length: 7 }, (_, i) => addDays(viewStartDate, i));
+
   useEffect(() => {
     const loadMealStatuses = async () => {
-      const weekKey = format(currentWeekStart, 'yyyy-MM-dd');
-      const statuses = await mockDb.mealStatus.getByWeekKey(userId, weekKey);
+      const statuses = await mockDb.mealStatus.getByWeekKey(userId, viewWeekKey);
       setMealStatusByDay(statuses);
     };
 
     void loadMealStatuses();
-  }, [currentWeekStart, userId]);
+  }, [userId, viewWeekKey]);
 
   const toggleMealStatus = async (dateStr: string, mealType: MealType) => {
     const nextStatuses: MealStatusByDay = {
@@ -71,12 +74,8 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
     };
 
     setMealStatusByDay(nextStatuses);
-    const weekKey = format(currentWeekStart, 'yyyy-MM-dd');
-    await mockDb.mealStatus.updateByWeekKey(userId, weekKey, nextStatuses);
+    await mockDb.mealStatus.updateByWeekKey(userId, viewWeekKey, nextStatuses);
   };
-
-  const viewStartDate = addDays(currentWeekStart, weekOffset * 7);
-  const days = Array.from({ length: 7 }, (_, i) => addDays(viewStartDate, i));
 
   const handleSaveMeal = async () => {
     if (!dishName.trim()) return;
