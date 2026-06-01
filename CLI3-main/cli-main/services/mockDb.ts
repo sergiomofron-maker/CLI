@@ -1,5 +1,5 @@
-import { addDays, addWeeks, differenceInCalendarWeeks, format, parseISO, startOfWeek } from "date-fns";
-import { InventoryItem, Meal, ShoppingAutoExclusion, ShoppingItem, User, WeeklyHistoryEntry, WeeklyMealSnapshot } from "../types";
+import { addDays, addWeeks, differenceInCalendarWeeks, format, isValid, parseISO, startOfWeek } from "date-fns";
+import { InventoryItem, Meal, MealType, ShoppingAutoExclusion, ShoppingItem, User, WeeklyHistoryEntry, WeeklyMealSnapshot } from "../types";
 
 // Keys for localStorage
 const MEALS_KEY = 'planifia_meals';
@@ -25,9 +25,58 @@ type WeeklyHistoryStore = Record<string, WeeklyHistoryEntry[]>;
 type WeeklyHistoryMetaStore = Record<string, { last_processed_week_key: string }>;
 
 
-type MealStatusStore = Record<string, Record<string, Partial<Record<MealType, boolean>>>>;
+type MealStatusByDay = Record<string, Partial<Record<MealType, boolean>>>;
+type MealStatusStore = Record<string, Record<string, MealStatusByDay>>;
 
 const getWeekStartKey = (date: Date): string => format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+const getStatusWeekKeyFromDateKey = (dateKey: string): string | null => {
+  const date = parseISO(dateKey);
+
+  if (!isValid(date)) {
+    return null;
+  }
+
+  return getWeekStartKey(date);
+};
+
+const normalizeMealStatusStoreForUser = (all: MealStatusStore, userId: string): Record<string, MealStatusByDay> => {
+  const userStatuses = all[userId] || {};
+  const normalized: Record<string, MealStatusByDay> = {};
+
+  const assignStatus = (dateKey: string, statuses: Partial<Record<MealType, boolean>>) => {
+    const statusWeekKey = getStatusWeekKeyFromDateKey(dateKey);
+
+    if (!statusWeekKey) {
+      return;
+    }
+
+    normalized[statusWeekKey] = {
+      ...normalized[statusWeekKey],
+      [dateKey]: {
+        ...normalized[statusWeekKey]?.[dateKey],
+        ...statuses
+      }
+    };
+  };
+
+  Object.values(userStatuses).forEach((weekStatuses) => {
+    Object.entries(weekStatuses).forEach(([dateKey, statuses]) => {
+      assignStatus(dateKey, statuses);
+    });
+  });
+
+  Object.entries(userStatuses).forEach(([storedWeekKey, weekStatuses]) => {
+    Object.entries(weekStatuses).forEach(([dateKey, statuses]) => {
+      if (getStatusWeekKeyFromDateKey(dateKey) === storedWeekKey) {
+        assignStatus(dateKey, statuses);
+      }
+    });
+  });
+
+  all[userId] = normalized;
+  return normalized;
+};
 
 const getMealsForWeek = (allMeals: Meal[], userId: string, weekStartKey: string): WeeklyMealSnapshot[] => {
   const start = parseISO(weekStartKey);
@@ -96,12 +145,14 @@ export const mockDb = {
     getByWeekKey: async (userId: string, weekKey: string) => {
       await delay(50);
       const all = JSON.parse(localStorage.getItem(MEAL_STATUS_KEY) || '{}') as MealStatusStore;
-      return all[userId]?.[weekKey] || {};
+      const userStatuses = normalizeMealStatusStoreForUser(all, userId);
+      localStorage.setItem(MEAL_STATUS_KEY, JSON.stringify(all));
+      return userStatuses[weekKey] || {};
     },
-    updateByWeekKey: async (userId: string, weekKey: string, statuses: Record<string, Partial<Record<MealType, boolean>>>) => {
+    updateByWeekKey: async (userId: string, weekKey: string, statuses: MealStatusByDay) => {
       await delay(50);
       const all = JSON.parse(localStorage.getItem(MEAL_STATUS_KEY) || '{}') as MealStatusStore;
-      const userStatuses = all[userId] || {};
+      const userStatuses = normalizeMealStatusStoreForUser(all, userId);
       userStatuses[weekKey] = statuses;
       all[userId] = userStatuses;
       localStorage.setItem(MEAL_STATUS_KEY, JSON.stringify(all));
