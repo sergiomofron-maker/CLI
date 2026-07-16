@@ -443,6 +443,42 @@ export const mockDb = {
       localStorage.setItem(INVENTORY_KEY, JSON.stringify(all));
       return newItem;
     },
+    incrementByName: async (userId: string, ingredientName: string, quantity: number | 'm') => {
+      await delay(100);
+      const all = JSON.parse(localStorage.getItem(INVENTORY_KEY) || '[]') as InventoryItem[];
+      const normalizedName = ingredientName.trim().toLowerCase();
+      const index = all.findIndex((item) => item.user_id === userId && item.ingredient_name.trim().toLowerCase() === normalizedName);
+
+      if (quantity !== 'm' && quantity <= 0) {
+        return null;
+      }
+
+      if (index !== -1) {
+        const currentQuantity = all[index].quantity;
+        const nextQuantity = currentQuantity === 'm' || quantity === 'm'
+          ? 'm'
+          : Number((currentQuantity + quantity).toFixed(2));
+
+        all[index] = {
+          ...all[index],
+          ingredient_name: ingredientName.trim(),
+          quantity: nextQuantity
+        };
+        localStorage.setItem(INVENTORY_KEY, JSON.stringify(all));
+        return all[index];
+      }
+
+      const newItem: InventoryItem = {
+        id: Date.now().toString() + Math.random(),
+        user_id: userId,
+        ingredient_name: ingredientName.trim(),
+        quantity,
+        created_at: Date.now()
+      };
+      all.push(newItem);
+      localStorage.setItem(INVENTORY_KEY, JSON.stringify(all));
+      return newItem;
+    },
     delete: async (id: string) => {
       await delay(100);
       let all = JSON.parse(localStorage.getItem(INVENTORY_KEY) || '[]') as InventoryItem[];
