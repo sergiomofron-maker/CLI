@@ -80,14 +80,63 @@ const getMimeType = (file: File): string => {
   return mimeMap[ext ?? ''] ?? 'image/jpeg';
 };
 
+const resizeImage = (file: File, maxWidth = 1024, maxHeight = 1024): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(img.src);
+      let width = img.width;
+      let height = img.height;
+
+      if (width > height) {
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+      } else {
+        if (height > maxHeight) {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('No se pudo inicializar el contexto 2d del canvas.'));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+      // Export as jpeg with 0.8 quality to keep file size small
+      const base64 = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+      if (!base64) {
+        reject(new Error('Error al comprimir la imagen.'));
+        return;
+      }
+      resolve(base64);
+    };
+    img.onerror = () => reject(new Error('Error al cargar la imagen.'));
+  });
+};
+
 export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProductDraft[]> => {
   const apiKey = getGroqApiKey();
   if (!apiKey) {
     throw new Error('Configura tu API key de Groq antes de escanear tickets.');
   }
 
-  const base64Image = await fileToBase64(imageFile);
-  const mimeType = getMimeType(imageFile);
+  // Resize and compress the image first to avoid HTTP 400 Payload Too Large
+  const base64Image = await resizeImage(imageFile).catch(async () => {
+    // Fallback to original base64 if resizing fails
+    return fileToBase64(imageFile);
+  });
+  
+  // Since we compress to jpeg in canvas, mimeType is image/jpeg
+  const mimeType = 'image/jpeg';
 
   const response = await fetch(GROQ_API_URL, {
     method: 'POST',
@@ -97,11 +146,15 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
+      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'user',
           content: [
-            { type: 'text', text: RECEIPT_PROMPT },
+            { 
+              type: 'text', 
+              text: `${RECEIPT_PROMPT}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON con una propiedad llamada "ingredients" que contenga la lista de strings.\nEjemplo: { "ingredients": ["Leche", "Huevos"] }` 
+            },
             {
               type: 'image_url',
               image_url: {
@@ -129,15 +182,15 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     throw new Error('La IA no ha devuelto ningún resultado.');
   }
 
-  // Parse the JSON array from the response
-  let ingredients: string[];
+  // Parse the JSON object from the response
+  let ingredients: string[] = [];
   try {
-    // The model might wrap the array in markdown code blocks, strip them
-    const cleaned = rawContent
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```$/i, '')
-      .trim();
-    ingredients = JSON.parse(cleaned);
+    const parsed = JSON.parse(rawContent);
+    if (parsed && Array.isArray(parsed.ingredients)) {
+      ingredients = parsed.ingredients;
+    } else if (Array.isArray(parsed)) {
+      ingredients = parsed;
+    }
   } catch {
     console.error('[GroqVision] Failed to parse response:', rawContent);
     throw new Error('No se ha podido interpretar la respuesta de la IA.');
