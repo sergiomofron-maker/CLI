@@ -4,9 +4,22 @@ export interface ReceiptProductDraft {
   quantity: string;
 }
 
-const GROQ_API_KEY = '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';
+const GROQ_STORAGE_KEY = 'planifia_groq_api_key';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+
+export const getGroqApiKey = (): string | null => {
+  return localStorage.getItem(GROQ_STORAGE_KEY);
+};
+
+export const setGroqApiKey = (key: string): void => {
+  localStorage.setItem(GROQ_STORAGE_KEY, key.trim());
+};
+
+export const hasGroqApiKey = (): boolean => {
+  const key = getGroqApiKey();
+  return Boolean(key && key.length > 0);
+};
 
 const RECEIPT_PROMPT = `Eres un asistente que analiza fotos de tickets de compra de supermercados españoles.
 
@@ -68,13 +81,18 @@ const getMimeType = (file: File): string => {
 };
 
 export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProductDraft[]> => {
+  const apiKey = getGroqApiKey();
+  if (!apiKey) {
+    throw new Error('Configura tu API key de Groq antes de escanear tickets.');
+  }
+
   const base64Image = await fileToBase64(imageFile);
   const mimeType = getMimeType(imageFile);
 
   const response = await fetch(GROQ_API_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

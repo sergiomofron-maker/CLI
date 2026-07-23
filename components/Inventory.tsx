@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { mockDb } from '../services/mockDb';
 import { InventoryItem } from '../types';
-import { Camera, Archive, Loader2, Plus, Trash2, Minus, X } from 'lucide-react';
-import { analyzeReceiptImage, ReceiptProductDraft } from '../services/groqVisionService';
+import { Camera, Archive, Loader2, Plus, Trash2, Minus, X, Key } from 'lucide-react';
+import { analyzeReceiptImage, ReceiptProductDraft, hasGroqApiKey, setGroqApiKey } from '../services/groqVisionService';
 
 interface InventoryProps {
   userId: string;
@@ -37,6 +37,8 @@ const Inventory: React.FC<InventoryProps> = ({ userId }) => {
   const [receiptError, setReceiptError] = useState('');
   const [isReceiptReviewOpen, setIsReceiptReviewOpen] = useState(false);
   const [isScanningReceipt, setIsScanningReceipt] = useState(false);
+  const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const loadInventory = async () => {
@@ -87,6 +89,21 @@ const Inventory: React.FC<InventoryProps> = ({ userId }) => {
 
   const openReceiptPicker = () => {
     setReceiptError('');
+    if (!hasGroqApiKey()) {
+      setApiKeyInput('');
+      setIsApiKeyModalOpen(true);
+      return;
+    }
+    fileInputRef.current?.click();
+  };
+
+  const handleSaveApiKey = () => {
+    const trimmed = apiKeyInput.trim();
+    if (!trimmed) return;
+    setGroqApiKey(trimmed);
+    setIsApiKeyModalOpen(false);
+    setApiKeyInput('');
+    // Now open the file picker
     fileInputRef.current?.click();
   };
 
@@ -267,6 +284,47 @@ const Inventory: React.FC<InventoryProps> = ({ userId }) => {
         onChange={handleReceiptImageSelected}
         className="hidden"
       />
+
+      {isApiKeyModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center gap-2">
+              <Key size={20} className="text-orange-600" />
+              <h3 className="text-lg font-bold text-gray-900">API Key de Groq</h3>
+            </div>
+            <p className="mb-3 text-sm text-gray-500">
+              Para leer tickets necesitas una API key de Groq (gratuita). Consíguela en{' '}
+              <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="text-orange-600 underline">console.groq.com/keys</a>
+            </p>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              placeholder="gsk_..."
+              className="mb-4 w-full rounded-lg border px-3 py-2 outline-none focus:ring-2 focus:ring-orange-500"
+              autoFocus
+            />
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setIsApiKeyModalOpen(false)}
+                className="rounded-lg border border-gray-200 px-4 py-2 font-medium text-gray-600 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveApiKey}
+                disabled={!apiKeyInput.trim()}
+                className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white hover:bg-orange-700 disabled:opacity-50"
+              >
+                Guardar
+              </button>
+            </div>
+            <p className="mt-3 text-xs text-gray-400 text-center">Solo se guarda en este dispositivo.</p>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"
