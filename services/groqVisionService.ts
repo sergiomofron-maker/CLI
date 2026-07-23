@@ -146,14 +146,13 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
-      response_format: { type: 'json_object' },
       messages: [
         {
           role: 'user',
           content: [
             { 
               type: 'text', 
-              text: `${RECEIPT_PROMPT}\n\nIMPORTANTE: Tu respuesta debe ser un objeto JSON con una propiedad llamada "ingredients" que contenga la lista de strings.\nEjemplo: { "ingredients": ["Leche", "Huevos"] }` 
+              text: `${RECEIPT_PROMPT}\n\nIMPORTANTE: Responde ÚNICAMENTE con un JSON array válido de strings, por ejemplo: ["Leche", "Huevos"]. No incluyas explicaciones, saludos ni markdown.` 
             },
             {
               type: 'image_url',
@@ -182,14 +181,20 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     throw new Error('La IA no ha devuelto ningún resultado.');
   }
 
-  // Parse the JSON object from the response
+  // Parse the JSON array or object from the response
   let ingredients: string[] = [];
   try {
-    const parsed = JSON.parse(rawContent);
-    if (parsed && Array.isArray(parsed.ingredients)) {
-      ingredients = parsed.ingredients;
-    } else if (Array.isArray(parsed)) {
+    // Clean potential markdown blocks
+    const cleaned = rawContent
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    
+    const parsed = JSON.parse(cleaned);
+    if (Array.isArray(parsed)) {
       ingredients = parsed;
+    } else if (parsed && Array.isArray(parsed.ingredients)) {
+      ingredients = parsed.ingredients;
     }
   } catch {
     console.error('[GroqVision] Failed to parse response:', rawContent);
