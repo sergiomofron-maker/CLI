@@ -169,9 +169,18 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
   });
 
   if (!response.ok) {
-    const errorBody = await response.text().catch(() => '');
-    console.error('[GroqVision] API error:', response.status, errorBody);
-    throw new Error(`Error del servicio de lectura (${response.status}). Inténtalo de nuevo.`);
+    let errorMessage = `Error del servicio de lectura (${response.status}).`;
+    try {
+      const errorData = await response.json();
+      if (errorData?.error?.message) {
+        errorMessage = `Error de Groq: ${errorData.error.message}`;
+        console.error('[GroqVision] Detailed API Error:', errorData.error);
+      }
+    } catch {
+      const errorBody = await response.text().catch(() => '');
+      console.error('[GroqVision] Raw API Error Body:', errorBody);
+    }
+    throw new Error(errorMessage);
   }
 
   const data = await response.json();
