@@ -281,6 +281,7 @@ const Inventory: React.FC<InventoryProps> = ({ userId }) => {
         ref={fileInputRef}
         type="file"
         accept="image/*"
+        capture="environment"
         onChange={handleReceiptImageSelected}
         className="hidden"
       />
