@@ -175,6 +175,23 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
       if (errorData?.error?.message) {
         errorMessage = `Error de Groq: ${errorData.error.message}`;
         console.error('[GroqVision] Detailed API Error:', errorData.error);
+        
+        // If it's a model error, try to fetch available models to help diagnose
+        if (response.status === 404 || errorData.error.code === 'model_not_found') {
+          try {
+            const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+              headers: { 'Authorization': `Bearer ${apiKey}` }
+            });
+            if (modelsRes.ok) {
+              const modelsData = await modelsRes.json();
+              const modelIds = modelsData?.data?.map((m: any) => m.id).join(', ') ?? '';
+              console.log('[GroqVision] Available models:', modelIds);
+              errorMessage += ` Modelos disponibles: ${modelIds}`;
+            }
+          } catch (e) {
+            console.error('[GroqVision] Failed to fetch models list:', e);
+          }
+        }
       }
     } catch {
       const errorBody = await response.text().catch(() => '');
