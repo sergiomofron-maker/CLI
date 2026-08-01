@@ -6,7 +6,7 @@ export interface ReceiptProductDraft {
 
 const GROQ_STORAGE_KEY = 'planifia_groq_api_key';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const GROQ_MODEL = 'llama-3.2-11b-vision-preview';
+const GROQ_MODEL = 'qwen/qwen3.6-27b';
 
 export const getGroqApiKey = (): string | null => {
   return localStorage.getItem(GROQ_STORAGE_KEY);
