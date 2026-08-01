@@ -210,21 +210,49 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
   // Parse the JSON array or object from the response
   let ingredients: string[] = [];
   try {
-    // Clean potential markdown blocks
-    const cleaned = rawContent
+    // Strip Qwen's <think>...</think> reasoning blocks
+    let cleaned = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    
+    // Strip markdown code blocks
+    cleaned = cleaned
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```$/i, '')
       .trim();
     
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed)) {
-      ingredients = parsed;
-    } else if (parsed && Array.isArray(parsed.ingredients)) {
-      ingredients = parsed.ingredients;
+    // Try direct JSON parse first
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        ingredients = parsed;
+      } else if (parsed && Array.isArray(parsed.ingredients)) {
+        ingredients = parsed.ingredients;
+      }
+    } catch {
+      // Fallback: find first JSON array in the text using regex
+      const arrayMatch = cleaned.match(/\[[\s\S]*?\]/);
+      if (arrayMatch) {
+        const parsed = JSON.parse(arrayMatch[0]);
+        if (Array.isArray(parsed)) {
+          ingredients = parsed;
+        }
+      } else {
+        // Last resort: find JSON object with ingredients key
+        const objMatch = cleaned.match(/\{[\s\S]*?\}/);
+        if (objMatch) {
+          const parsed = JSON.parse(objMatch[0]);
+          if (parsed && Array.isArray(parsed.ingredients)) {
+            ingredients = parsed.ingredients;
+          }
+        }
+      }
     }
   } catch {
     console.error('[GroqVision] Failed to parse response:', rawContent);
     throw new Error('No se ha podido interpretar la respuesta de la IA.');
+  }
+  
+  if (ingredients.length === 0) {
+    console.warn('[GroqVision] No ingredients found in response:', rawContent);
   }
 
   if (!Array.isArray(ingredients)) {
