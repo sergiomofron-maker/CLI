@@ -164,7 +164,7 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
         },
       ],
       temperature: 0.1,
-      max_tokens: 1024,
+      max_tokens: 4096,
     }),
   });
 
@@ -211,8 +211,11 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
   let ingredients: string[] = [];
   let cleaned = '';
   try {
-    // Strip Qwen's <think>...</think> reasoning blocks
-    cleaned = rawContent.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    // Strip Qwen's <think>...</think> reasoning blocks (also handles unclosed tags)
+    cleaned = rawContent
+      .replace(/<think>[\s\S]*?<\/think>/gi, '')
+      .replace(/<think>[\s\S]*/gi, '')
+      .trim();
     
     // Strip markdown code blocks
     cleaned = cleaned
@@ -249,13 +252,12 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     }
   } catch (parseError) {
     console.error('[GroqVision] Failed to parse response:', rawContent);
-    const preview = rawContent.substring(0, 500);
-    throw new Error(`Error de parseo. Respuesta cruda de la IA (primeros 500 chars): ${preview}`);
+    throw new Error('No se ha podido interpretar la respuesta de la IA. Inténtalo de nuevo.');
   }
   
   if (ingredients.length === 0) {
-    const preview = rawContent.substring(0, 500);
-    throw new Error(`No se encontraron ingredientes. Cleaned: "${cleaned.substring(0, 300)}". Raw: "${preview}"`);
+    console.warn('[GroqVision] No ingredients found. Raw:', rawContent);
+    throw new Error('No se han detectado productos en el ticket. Asegúrate de que la foto sea clara y enfocada.');
   }
 
   if (!Array.isArray(ingredients)) {
