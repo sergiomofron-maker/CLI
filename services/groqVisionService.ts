@@ -35,7 +35,7 @@ REGLAS ESTRICTAS:
    - Si contiene "Queso" y "lonchas" (o "lonch") → "Queso en lonchas"
    - Si contiene "Queso" (sin lonchas/lonch) → "Queso"
    - Otros ejemplos de limpieza general: "Leche semidesnatada Gaza" → "Leche", "Macarrones Gallo" → "Macarrones", "Jamón cocido" → "Jamón york"
-3. Si un producto aparece varias veces en el ticket, inclúyelo SOLO UNA VEZ.
+3. Si un producto aparece varias veces en el ticket (por ejemplo, compras dos tipos de queso), INCLÚYELO TANTAS VECES COMO APAREZCA.
 4. Si no puedes identificar ningún producto, devuelve un array vacío [].
 5. NO inventes productos que no aparezcan en el ticket.
 6. NO incluyas productos de limpieza, higiene, ni artículos no alimentarios.
@@ -259,17 +259,9 @@ export const analyzeReceiptImage = async (imageFile: File): Promise<ReceiptProdu
     throw new Error('Respuesta inesperada de la IA.');
   }
 
-  // Filter and deduplicate
-  const seen = new Set<string>();
   return ingredients
     .filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
     .map((name) => name.trim())
-    .filter((name) => {
-      const key = name.toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
     .map((name, index) => ({
       id: `${Date.now()}_${index}_${Math.random().toString(36).slice(2)}`,
       name,
