@@ -27,19 +27,14 @@ TAREA: Extrae ÚNICAMENTE los nombres de los productos alimentarios comprados.
 
 REGLAS ESTRICTAS:
 1. IGNORA completamente: precios (€), pesos (kg, g), precios por kilo (€/kg), cantidades numéricas, códigos de barras, totales, subtotales, IVA, descuentos, nombre del supermercado, fecha, hora, número de ticket, dirección, teléfono, formas de pago, y cualquier texto que NO sea un nombre de producto.
-2. NORMALIZA cada producto a su ingrediente básico genérico, sin marca ni especificación:
-   - "Leche semidesnatada Gaza" → "Leche"
-   - "Macarrones Gallo 500g" → "Macarrones"
-   - "Pechuga de pollo fileteada" → "Pollo"
-   - "Tomate triturado Orlando" → "Tomate frito"
-   - "Yogur natural Hacendado" → "Yogur"
-   - "Aceite de oliva virgen extra Carbonell" → "Aceite"
-   - "Pan de molde Bimbo integral" → "Pan de molde"
-   - "Queso rallado García Baquero" → "Queso"
-   - "Agua mineral Bezoya" → "Agua"
-   - "Atún claro en aceite Calvo" → "Atún"
-   - "Jamón cocido extra Campofrío" → "Jamón york"
-   - "Espaguetis integrales Barilla" → "Pasta"
+2. NORMALIZA cada producto a su ingrediente básico genérico siguiendo estas equivalencias estrictas:
+   - "Alas de pollo" → "Alas de pollo"
+   - "Filetes de pollo" → "Filetes"
+   - "Jamón ibérico" → "Jamón serrano"
+   - Si contiene "Pollo" y cualquier otra cosa (excepto alas/filetes) → "Pollo"
+   - Si contiene "Queso" y "lonchas" (o "lonch") → "Queso en lonchas"
+   - Si contiene "Queso" (sin lonchas/lonch) → "Queso"
+   - Otros ejemplos de limpieza general: "Leche semidesnatada Gaza" → "Leche", "Macarrones Gallo" → "Macarrones", "Jamón cocido" → "Jamón york"
 3. Si un producto aparece varias veces en el ticket, inclúyelo SOLO UNA VEZ.
 4. Si no puedes identificar ningún producto, devuelve un array vacío [].
 5. NO inventes productos que no aparezcan en el ticket.
