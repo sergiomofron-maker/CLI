@@ -13,6 +13,7 @@ const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'calendar' | 'shopping' | 'inventory' | 'history'>('calendar');
+  const [calendarWeekOffset, setCalendarWeekOffset] = useState<0 | 1>(0);
 
   useEffect(() => {
     checkUser();
@@ -38,7 +39,11 @@ const App: React.FC = () => {
       ) : (
         <Layout activeTab={activeTab} setActiveTab={setActiveTab} onLogout={() => setUser(null)}>
           {activeTab === 'calendar' ? (
-            <Calendar userId={user.id} />
+            <Calendar
+              userId={user.id}
+              weekOffset={calendarWeekOffset}
+              onWeekOffsetChange={setCalendarWeekOffset}
+            />
           ) : activeTab === 'shopping' ? (
             <ShoppingList userId={user.id} />
           ) : activeTab === 'history' ? (

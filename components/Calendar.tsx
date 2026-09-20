@@ -8,12 +8,14 @@ import { Loader2, Plus, Trash2, CalendarRange, RotateCcw, Check, X } from 'lucid
 
 interface CalendarProps {
   userId: string;
+  weekOffset: 0 | 1;
+  onWeekOffsetChange: (weekOffset: 0 | 1) => void;
 }
 
 
 type MealStatusByDay = Record<string, Record<MealType, boolean>>;
 
-const Calendar: React.FC<CalendarProps> = ({ userId }) => {
+const Calendar: React.FC<CalendarProps> = ({ userId, weekOffset, onWeekOffsetChange }) => {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -25,7 +27,6 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
   const [generatingShoppingList, setGeneratingShoppingList] = useState(false);
   const [repeatingCurrentWeek, setRepeatingCurrentWeek] = useState(false);
   const [editingMealId, setEditingMealId] = useState<string | null>(null);
-  const [weekOffset, setWeekOffset] = useState<0 | 1>(0);
   const [mealStatusByDay, setMealStatusByDay] = useState<MealStatusByDay>({});
 
   const currentWeekStart = useMemo(() => startOfWeek(now, { weekStartsOn: 1 }), [now]);
@@ -165,7 +166,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
 
       <div className="px-4 mb-4 flex gap-2">
         <button
-          onClick={() => setWeekOffset(0)}
+          onClick={() => onWeekOffsetChange(0)}
           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors border ${
             weekOffset === 0
               ? 'bg-orange-600 text-white border-orange-600'
@@ -175,7 +176,7 @@ const Calendar: React.FC<CalendarProps> = ({ userId }) => {
           Semana Actual
         </button>
         <button
-          onClick={() => setWeekOffset(1)}
+          onClick={() => onWeekOffsetChange(1)}
           className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors border ${
             weekOffset === 1
               ? 'bg-orange-600 text-white border-orange-600'
