@@ -41,6 +41,7 @@ const isEnsaladaDeGarbanzos = (dishName: string): boolean => normalizeText(dishN
 const isFajitas = (dishName: string): boolean => normalizeText(dishName).includes('fajita');
 const isTortillaDePatata = (dishName: string): boolean => normalizeText(dishName).includes('tortilla de patata');
 const isAlubiasDish = (dishName: string): boolean => normalizeText(dishName).includes('alubias');
+const isTupperMeal = (dishName: string): boolean => normalizeText(dishName).includes('tupper');
 
 const getIngredientWeight = (dishName: string, ingredientKey: string): number => {
   const inGarbanzosSalad = isEnsaladaDeGarbanzos(dishName);
@@ -86,6 +87,10 @@ type MealIngredientRequirements = {
 };
 
 const getMealIngredientRequirements = async (meal: Meal): Promise<MealIngredientRequirements> => {
+  if (isTupperMeal(meal.dish_name)) {
+    return { requiredCounts: {}, requiredDisplayNames: {} };
+  }
+
   const { ingredients } = await getIngredientsForDish(meal.dish_name);
 
   const requiredCounts: Record<string, number> = {};
